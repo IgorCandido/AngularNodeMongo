@@ -1,9 +1,8 @@
 var socketIo,
-	messageRepoMongo = require('./messageRepoMongo.js');
+	messageRepoMongo = require('./messageRepoMongo.js'),
+	messageClientIdRepo = require('./messageClientIdRepo.js');
 
 // State
-
-var clientId = 0;
 var clients = [];
 
 // DTO
@@ -19,14 +18,19 @@ function Client(clientId, socket){
 
 	socket.emit('welcome', {clientId: clientId, message: 'Welcome'});
 
+	socket.on('ready', function(clientId){
+		this.clientId = clientId;
+		console.log('Client confirmed id: ' + clientId);
+	}.bind(this));
+
 	socket.on('clientMessage', function(data){
-		console.log(clientId + ' ' + data);  
-		receiveMessage(clientId, data);
-	});
+		console.log(this.clientId + ' ' + data);  
+		receiveMessage(this.clientId, data);
+	}.bind(this));
 
 	socket.on('disconnect', function(){
 		disconnectedClient(this);
-	});
+	}.bind(this));
 
 	this.syncMessages = function(messages){
 		for(var i = 0; i < messages.length; ++i){
@@ -69,10 +73,12 @@ function receiveMessage(clientId, data){
 }
 
 function newConnection(socket){
-	var client =new Client(clientId++, socket);
-	getHistoric(client);
+	messageClientIdRepo.getNewId(function(clientId){
+		var client =new Client(clientId, socket);
+		getHistoric(client);
 
-	clients.push(client)
+		clients.push(client);
+	});
 }
 
 // Public interface

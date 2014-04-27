@@ -5,17 +5,19 @@
 
 // Demonstrate how to register services
 // In this case it is a simple value service.
-var services = angular.module('myApp.services', []);
+var services = angular.module('myApp.services', ['angularLocalStorage']);
 
 services.value('version', '0.1');
 services.constant('webSocketHost', 'http://localhost');
 
-services.provider('sockJs', function(){
+services.factory('sockJs', ['webSocketHost', 'storage', function(host, localStore){
 	var socket;
 
-	function SockClient(){
-		this.clientId = null;
+	function SockClient(){		
+		this.clientId = localStore.get('clientId');
 		this.receive = null;
+
+		console.log('Client id: ' + this.clientId);
 
 		var handleReceive = function(message){
 			if(this.receive != null){
@@ -30,7 +32,12 @@ services.provider('sockJs', function(){
 
 		socket.on('welcome', function(data){
 			console.log(data);
-			this.clientId = data.clientId;
+			if(this.clientId == null){
+				this.clientId = data.clientId;
+				localStore.set('clientId', this.clientId);	
+			}
+
+			socket.emit('ready', this.clientId);
 		}.bind(this));
 
 		socket.on('clientMessage', function(message){
@@ -38,9 +45,8 @@ services.provider('sockJs', function(){
 		}.bind(this));
 	}
 
-	this.$get = ['webSocketHost', function(host){
-		socket = io.connect(host);
+	socket = io.connect(host);
 
-		return new SockClient();
-	}];
-});
+	return new SockClient();
+
+}]);

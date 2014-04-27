@@ -27,7 +27,7 @@ controllers.controller('ChatController', ['$scope', 'sockJs',
   		};
 
   		$scope.enterMessage = function(){
-			sockJs.send('clientMessage', $scope.text);
+			 sockJs.send('clientMessage', $scope.text);
   		}
 
 	}]);
